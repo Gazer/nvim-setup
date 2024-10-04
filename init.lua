@@ -91,7 +91,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.opt`
@@ -102,7 +102,7 @@ vim.g.have_nerd_font = false
 vim.opt.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.opt.relativenumber = true
+vim.opt.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
@@ -323,6 +323,20 @@ require('lazy').setup({
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
       },
     },
+    {
+      'ray-x/go.nvim',
+      dependencies = { -- optional packages
+        'ray-x/guihua.lua',
+        'neovim/nvim-lspconfig',
+        'nvim-treesitter/nvim-treesitter',
+      },
+      config = function()
+        require('go').setup()
+      end,
+      event = { 'CmdlineEnter' },
+      ft = { 'go', 'gomod' },
+      build = ':lua require("go.install").update_all_sync()', -- if you need to install/update all binaries
+    },
   },
 
   -- NOTE: Plugins can specify dependencies.
@@ -456,7 +470,11 @@ require('lazy').setup({
     'neovim/nvim-lspconfig',
     dependencies = {
       -- Automatically install LSPs and related tools to stdpath for Neovim
-      { 'williamboman/mason.nvim', config = true }, -- NOTE: Must be loaded before dependants
+      { 'williamboman/mason.nvim', config = true, opts = {
+        ensure_installed = {
+          'gopls',
+        },
+      } }, -- NOTE: Must be loaded before dependants
       'williamboman/mason-lspconfig.nvim',
       'WhoIsSethDaniel/mason-tool-installer.nvim',
 
@@ -929,7 +947,7 @@ require('lazy').setup({
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
   --    For additional information, see `:help lazy.nvim-lazy.nvim-structuring-your-plugins`
-  -- { import = 'custom.plugins' },
+  { import = 'custom.plugins' },
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
@@ -950,6 +968,23 @@ require('lazy').setup({
       lazy = '💤 ',
     },
   },
+})
+
+-- Función para cargar configuraciones por lenguaje
+local function load_language_config(filetype)
+  local ok, config = pcall(require, 'custom.lang_configs.' .. filetype)
+  if ok then
+    config.setup()
+  end
+end
+
+-- Crear autocomandos para cargar las configuraciones por lenguaje
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = '*',
+  callback = function()
+    local filetype = vim.bo.filetype
+    load_language_config(filetype)
+  end,
 })
 
 -- The line beneath this is called `modeline`. See `:help modeline`
